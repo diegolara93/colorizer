@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>
-    {{form.hidden_tag()}}
-    {{form.prompt.label}}  {{form.prompt}}
-    {{form.submit()}}
-    {{msg}}
-</h1>
+<section class="page">
+  <div class="container">
+    <h1>Colorizer</h1>
+    <h3>An AI powered color palette generator that brings your dreams into a design palette.</h3>
+  </div>
+  <div class="grid text-center">
+    <img src="/static/assets/openai-logo.jpg" alt="">
+    <h1 class="g-col-2">How it works</h1>
+    <p class="g-col-2">Uses the OpenAI API in order to generate the colors palettes, free of charge!</p>
+  </div>
+</section>
 {% endblock %}

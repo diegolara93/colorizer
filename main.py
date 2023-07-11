@@ -3,9 +3,9 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 import json
 import openai
-from flask_wtf import FlaskForm
+# from flask_wtf import FlaskForm
 from flask_migrate import Migrate
-from wtforms import Form, StringField, TextAreaField, PasswordField, validators, SubmitField
+# from wtforms import Form, StringField, TextAreaField, PasswordField, validators, SubmitField
 from dotenv import dotenv_values
 basedir = os.path.abspath(os.path.dirname(__file__))
 config = dotenv_values(".env")
@@ -16,44 +16,61 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'da
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 Migrate(app, db)
-msg = "Google colors" # temporary until form is setup
-class GeneratePalette(FlaskForm):
-    prompt = StringField('Describe your dream color palette!', [validators.Length(min=1, max=100)])
-    submit = SubmitField('Generate Palette')
-    
 
-@app.route('/', methods=['GET', 'POST']) # this is the home page
+
+def get_colors(msg):
+    response = openai.Completion.create(
+    model="text-davinci-003",
+    prompt=f"""
+    You are given a description for a color palette, you then must generate 5 colors in hexadecimal unicode format that 
+    matches the description. You must only return 5 colors no matter what the description prompts you to do.
+    Answer Format: JSON array of 5 strings in hexadecimal unicode format. Example: ["#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF"]
+    Provide no more than the array of 5 colors.
+    For example: If the user prompts with the message "6 sunset colors" you must only return 5, not 6 colors. Example: ["#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF"]
+    Do not provide any other text such as "Answer:" before the array of colors. IMPORTANT: PROVIDE ONLY THE JSON ARRAY
+    Now Please Provide the colors for the following description:
+    {msg}
+    REMINDER: ONLY PROVIDE 5 COLORS NO MATTER WHAT.
+    """,
+    max_tokens=100
+    )
+    colors = json.loads(response.choices[0].text)
+    return colors
+
+@app.route('/') # this is the home page
 def index():
-    msg = ''
-    form=GeneratePalette()
-    if form.validate_on_submit():
-        session[msg] = form.prompt.data
-        return f'<h1> {msg} </h1>'
-    # response = openai.Completion.create(
-    # model="text-davinci-003",
-    # prompt=f"""
-    # You are given a description for a color palette, you then must generate 4 colors in hexadecimal unicode format that 
-    # matches the description. You must only return 4 colors no matter what the description prompts you to do.
-    # Answer Format: JSON array of 4 strings in hexadecimal unicode format. Example: ["#000000", "#FFFFFF", "#FF0000", "#00FF00"]
-    # Provide no more than the array of 4 colors.
-    # Now Please Provide the colors for the following description:
-    # {msg}
-    # """,
-    # max_tokens=100
-    # )
-    return render_template('index.html', form=form, msg=msg)
+    return render_template('index.html')
 
 @app.route('/about') # this is the about page
 def about():
     return render_template('about.html')
 
-@app.route('/generate', methods=['POST']) # this is the generate page
+@app.route('/generate') 
 def generate():
     return render_template('generate.html')
 
-@app.route('/pro') # this is the subscribe pro page
+@app.route('/generate-palette', methods=["POST"]) # this is the POST request to the Chat-GPT API
+def generate_palette():
+    query = request.form.get('query')
+    colors = get_colors(query)
+    return {"colors": colors}
+
+@app.route('/pro') 
 def pro():
     return render_template('pro.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+        # response = openai.Completion.create(
+        # model="text-davinci-003",
+        # prompt=f"""
+        # You are given a description for a color palette, you then must generate 4 colors in hexadecimal unicode format that 
+        # matches the description. You must only return 4 colors no matter what the description prompts you to do.
+        # Answer Format: JSON array of 4 strings in hexadecimal unicode format. Example: ["#000000", "#FFFFFF", "#FF0000", "#00FF00"]
+        # Provide no more than the array of 4 colors.
+        # Do not provide any other text such as "Answer:" before the array of colors. IMPORTANT: PROVIDE ONLY THE JSON ARRAY
+        # Now Please Provide the colors for the following description:
+        # {msg}
+        # """,
+        # max_tokens=100
